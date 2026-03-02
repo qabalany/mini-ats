@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
 
     // We only need the service role key to do the admin actions
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabaseServiceRoleKey = Deno.env.get('ADMIN_SERVICE_ROLE_KEY') || '';
 
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       throw new Error('Missing Supabase environment variables');
