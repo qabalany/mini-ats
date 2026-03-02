@@ -7,9 +7,12 @@ import Select from "../components/ui/Select";
 import Modal from "../components/ui/Modal";
 import Badge from "../components/ui/Badge";
 
+import { useAuth } from "../context/AuthContext";
+
 // admin view to manage users and view their data
 // requires service_role key to actually create users
 export default function AdminPanel({ showToast }) {
+  const { session } = useAuth();
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -51,19 +54,18 @@ export default function AdminPanel({ showToast }) {
     setCreating(true);
 
     try {
-      // This uses the Supabase Auth Admin API.
-      // Requires service_role key — see setup guide for Edge Function alternative.
-      const { error } = await supabase.auth.admin.createUser({
-        email: form.email,
-        password: form.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: form.full_name,
-          role: form.role,
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/create-user`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
         },
+        body: JSON.stringify(form),
       });
 
-      if (error) throw error;
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create account");
 
       showToast(`Account created for ${form.email}`, "success");
       setModalOpen(false);
@@ -165,8 +167,8 @@ export default function AdminPanel({ showToast }) {
               <div className="flex items-center gap-3 mb-4">
                 <div
                   className={`flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold ${selectedUser.role === "admin"
-                      ? "bg-purple-50 text-purple-700"
-                      : "bg-emerald-50 text-emerald-700"
+                    ? "bg-purple-50 text-purple-700"
+                    : "bg-emerald-50 text-emerald-700"
                     }`}
                 >
                   {(selectedUser.full_name || selectedUser.email)[0].toUpperCase()}
@@ -240,9 +242,8 @@ export default function AdminPanel({ showToast }) {
 
           {/* Info note */}
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
-            <strong>Note:</strong> Creating accounts requires a Supabase service_role key.
-            If using the anon key, create users through the Supabase dashboard or an Edge Function.
-            See SETUP-GUIDE.md for details.
+            <strong>Note:</strong> Accounts are created server-side. Deploy the Edge
+            Function with <code className="bg-amber-100 px-1 py-0.5 rounded">supabase functions deploy create-user</code>.
           </div>
         </div>
       </Modal>
